@@ -1,3 +1,5 @@
 ---
-  name: PolyF1 Game
-  description: 3d
+name: PolyF1 Game
+description: 3D F1 WebGL Game
+resources:
+  - https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js
