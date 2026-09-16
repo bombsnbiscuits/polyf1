@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Poly GP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;800&family=Saira:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--ers:#35e0c8;--fuel:#ffc23d;--drs:#7cff6b;--red:#ff3b4a;--ink:#fff}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#9fd3ef;font-family:Saira,system-ui,sans-serif;color:var(--ink);user-select:none;-webkit-user-select:none;touch-action:none}
+canvas{display:block}
+.glass{background:rgba(18,30,46,.30);backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);border:1px solid rgba(255,255,255,.28);border-radius:16px;box-shadow:0 8px 30px rgba(10,30,50,.22)}
+.num{font-family:"Saira Condensed",Saira,sans-serif;font-variant-numeric:tabular-nums}
+.hidden{display:none!important}
+#hud{position:fixed;inset:0;pointer-events:none}
+#timing{position:absolute;top:16px;left:16px;padding:12px 16px;min-width:200px}
+#timing .row{display:flex;justify-content:space-between;gap:16px;font-size:14px;opacity:.9}
+#timing .big{font-size:38px;font-weight:700;line-height:1;margin:2px 0 6px}
+#timing .top{display:flex;justify-content:space-between;align-items:baseline;font-family:"Saira Condensed";font-size:20px;font-weight:700}
+#standings{position:absolute;top:150px;left:16px;padding:8px 12px;min-width:200px;font-size:14px}
+#standings div{display:flex;gap:8px;align-items:center;padding:2px 0}
+#standings i{width:4px;height:14px;border-radius:2px;display:inline-block}
+#standings .me{font-weight:600}
+#dash{position:absolute;right:16px;bottom:16px;padding:14px 16px;width:300px}
+#rpm{display:grid;grid-template-columns:repeat(15,1fr);gap:3px;margin-bottom:10px}
+#rpm span{height:8px;border-radius:2px;background:rgba(255,255,255,.15)}
+#spdrow{display:flex;align-items:flex-end;justify-content:space-between}
+#speed{font-size:64px;font-weight:800;line-height:.9}
+#speed small{font-size:16px;font-weight:500;margin-left:4px;opacity:.8}
+#gear{font-size:52px;font-weight:800;line-height:.9;width:58px;height:62px;display:grid;place-items:center;border:2px solid rgba(255,255,255,.5);border-radius:12px}
+.bar{margin-top:10px}
+.bar .lbl{display:flex;justify-content:space-between;font-size:13px;opacity:.9}
+.bar .track{height:8px;border-radius:4px;background:rgba(255,255,255,.15);overflow:hidden;margin-top:3px}
+.bar .fill{height:100%;border-radius:4px;transition:width .1s linear}
+#badges{display:flex;gap:6px;margin-top:12px}
+.badge{flex:1;text-align:center;font-family:"Saira Condensed";font-weight:700;font-size:15px;padding:4px 0;border-radius:8px;border:1px solid rgba(255,255,255,.3);opacity:.55}
+.badge.on{opacity:1}
+#b-drs.on{background:var(--drs);color:#10300a;border-color:var(--drs)}
+#b-ers.on{background:var(--ers);color:#062e29;border-color:var(--ers)}
+#b-strat.s1{background:var(--red);border-color:var(--red);opacity:1}
+#b-strat.s2{background:rgba(255,255,255,.9);color:#17202c;opacity:1}
+#b-strat.s3{background:#3d8bff;border-color:#3d8bff;opacity:1}
+#lights{position:absolute;top:22px;left:50%;transform:translateX(-50%);display:flex;gap:10px;padding:10px 14px}
+#lights span{width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.45);border:2px solid rgba(255,255,255,.25)}
+#lights span.on{background:var(--red);box-shadow:0 0 16px var(--red)}
+#msg{position:absolute;top:34%;left:50%;transform:translateX(-50%);font-family:"Saira Condensed";font-weight:800;font-size:44px;text-shadow:0 3px 18px rgba(0,30,60,.45);white-space:nowrap;transition:opacity .25s}
+#hint{position:absolute;left:16px;bottom:16px;padding:10px 14px;font-size:13px;line-height:1.55;max-width:320px;transition:opacity 1s}
+#hint b{font-family:"Saira Condensed";font-weight:700;display:inline-block;min-width:74px}
+.overlay{position:fixed;inset:0;display:grid;place-items:center;background:rgba(60,110,150,.25);pointer-events:auto;padding:16px}
+.panel{padding:28px 30px;width:min(560px,100%)}
+.panel h1{font-family:"Saira Condensed";font-weight:800;font-size:56px;line-height:.95}
+.panel p.sub{opacity:.85;margin:6px 0 20px}
+.tracks{display:grid;gap:10px}
+.trk{display:block;width:100%;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font:inherit;cursor:pointer}
+.trk strong{font-family:"Saira Condensed";font-size:22px;display:block}
+.trk span{font-size:14px;opacity:.85}
+.trk.sel{background:rgba(255,255,255,.92);color:#15202d;border-color:#fff}
+.trk:focus-visible,.btn:focus-visible{outline:3px solid #ffe066;outline-offset:2px}
+.btn{margin-top:18px;width:100%;padding:14px;border:0;border-radius:12px;background:var(--red);color:#fff;font-family:"Saira Condensed";font-weight:800;font-size:24px;cursor:pointer}
+.btn.alt{background:rgba(255,255,255,.18);margin-top:10px;font-size:20px}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:15px}
+td{padding:6px 4px;border-bottom:1px solid rgba(255,255,255,.15)}
+td:first-child{font-family:"Saira Condensed";font-weight:700;width:34px}
+#touch{position:fixed;inset:auto 0 0 0;height:0;pointer-events:none}
+#touch button{position:fixed;pointer-events:auto;width:74px;height:74px;border-radius:50%;border:1px solid rgba(255,255,255,.4);background:rgba(18,30,46,.35);color:#fff;font-family:"Saira Condensed";font-weight:800;font-size:18px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#touch button.down{background:rgba(255,255,255,.55);color:#15202d}
+@media (max-width:760px){
+  #timing{top:8px;left:8px;padding:8px 10px;min-width:150px}
+  #timing .big{font-size:26px}
+  #standings{display:none}
+  #dash{top:8px;right:8px;bottom:auto;width:190px;padding:8px 10px}
+  #speed{font-size:40px}#gear{font-size:32px;width:40px;height:44px}
+  #rpm{margin-bottom:6px}#hint{display:none}
+  #lights{top:auto;bottom:190px}
+  #msg{font-size:30px}
+}
+</style>
+</head>
+<body>
+<div id="hud" class="hidden">
+  <div id="timing" class="glass">
+    <div class="top"><span id="lap">Lap 1/3</span><span id="pos">P1/4</span></div>
+    <div class="big num" id="laptime">0:00.000</div>
+    <div class="row"><span>Last</span><span class="num" id="last">–</span></div>
+    <div class="row"><span>Best</span><span class="num" id="best">–</span></div>
+  </div>
+  <div id="standings" class="glass"></div>
+  <div id="lights" class="glass hidden"><span></span><span></span><span></span><span></span><span></span></div>
+  <div id="msg" style="opacity:0"></div>
+  <div id="dash" class="glass">
+    <div id="rpm"></div>
+    <div id="spdrow">
+      <div id="speed" class="num">0<small>km/h</small></div>
+      <div id="gear" class="num">N</div>
+    </div>
+    <div class="bar"><div class="lbl"><span>ERS</span><span class="num" id="ers-t">100%</span></div><div class="track"><div class="fill" id="ers-f" style="background:var(--ers);width:100%"></div></div></div>
+    <div class="bar"><div class="lbl"><span>Fuel</span><span class="num" id="fuel-t">100%</span></div><div class="track"><div class="fill" id="fuel-f" style="background:var(--fuel);width:100%"></div></div></div>
+    <div id="badges">
+      <div class="badge s2" id="b-strat">Strat 2</div>
+      <div class="badge" id="b-drs">DRS</div>
+      <div class="badge" id="b-ers">Boost</div>
+    </div>
+  </div>
+  <div id="hint" class="glass">
+    <div><b>Arrows/WASD</b> Drive</div>
+    <div><b>Space / E</b> Toggle DRS (closes on brake)</div>
+    <div><b>Shift / K</b> Hold ERS boost</div>
+    <div><b>1 2 3</b> Engine strat: party, standard, lean</div>
+    <div><b>R</b> Reset to track &nbsp; <b style="min-width:0">P</b> Pause</div>
+  </div>
+</div>
+
+<div id="menu" class="overlay">
+  <div class="panel glass">
+    <h1>Poly GP</h1>
+    <p class="sub">Pick a circuit. Manage fuel, battery and DRS to beat three rivals.</p>
+    <div class="tracks" id="tracklist"></div>
+    <button class="btn" id="start">Start race</button>
+  </div>
+</div>
+
+<div id="pause" class="overlay hidden">
+  <div class="panel glass">
+    <h1>Paused</h1>
+    <button class="btn" id="resume">Resume</button>
+    <button class="btn alt" id="quit1">Back to circuits</button>
+  </div>
+</div>
+
+<div id="results" class="overlay hidden">
+  <div class="panel glass">
+    <h1 id="res-title">Finished</h1>
+    <table id="res-table"></table>
+    <button class="btn" id="again">Race again</button>
+    <button class="btn alt" id="quit2">Back to circuits</button>
+  </div>
+</div>
+
+<div id="touch" class="hidden">
+  <button data-k="ArrowLeft" style="left:16px;bottom:24px">◀</button>
+  <button data-k="ArrowRight" style="left:104px;bottom:24px">▶</button>
+  <button data-k="ArrowDown" style="right:104px;bottom:24px">Brake</button>
+  <button data-k="ArrowUp" style="right:16px;bottom:24px">Gas</button>
+  <button data-k="ShiftLeft" style="right:16px;bottom:110px">ERS</button>
+  <button data-tap="KeyE" style="right:104px;bottom:110px">DRS</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="demo.js"></script>
+</body>
+</html>
